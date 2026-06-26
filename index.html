@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#070707">
+<meta name="apple-mobile-web-app-title" content="ArenaOS">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>ArenaOS</title>
+<style>
+:root{
+  --bg:#070707;--surf:#111;--surf2:#191919;--border:#222;
+  --acc:#e63c00;--txt:#dedede;--txt2:#6a6a6a;--txt3:#303030;
+  --green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--gold:#d4a017;
+  --r:5px;--mono:'Courier New',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--mono);font-size:14px;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;}
+.view{display:none;flex:1;overflow-y:auto;padding:14px 14px 82px;-webkit-overflow-scrolling:touch;}
+.view.on{display:block;}
+
+/* NAV */
+nav{position:fixed;bottom:0;left:0;right:0;height:56px;background:var(--surf);border-top:1px solid var(--border);display:flex;z-index:99;padding-bottom:env(safe-area-inset-bottom,0);}
+.nb{flex:1;background:none;border:none;color:var(--txt3);font-family:var(--mono);font-size:9px;letter-spacing:1.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;transition:color .15s;text-transform:uppercase;}
+.nb.on{color:var(--acc);}
+.nb svg{width:17px;height:17px;stroke-width:2;fill:none;stroke:currentColor;}
+
+/* HEADER */
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.pt{font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;}
+.acc{color:var(--acc);}
+.dim{font-size:9px;color:var(--txt3);letter-spacing:1px;text-align:right;}
+.streak{color:var(--gold);font-weight:700;}
+
+/* CARDS */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:10px;}
+.card-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.sport-label{font-size:9px;letter-spacing:2px;color:var(--txt2);text-transform:uppercase;margin-bottom:2px;}
+.rank-name{font-size:14px;font-weight:700;}
+.rank-badge{font-size:9px;padding:3px 8px;border-radius:3px;background:var(--surf2);color:var(--txt2);font-weight:700;letter-spacing:1px;white-space:nowrap;}
+.xp-wrap{margin:6px 0;}
+.xp-labels{display:flex;justify-content:space-between;font-size:9px;color:var(--txt3);margin-bottom:3px;gap:6px;}
+.xp-labels span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.xp-track{height:2px;background:var(--border);border-radius:2px;overflow:hidden;}
+.xp-fill{height:100%;border-radius:2px;transition:width .4s ease;}
+.stat-row{display:flex;gap:16px;margin-top:8px;}
+.stat-val{font-size:15px;font-weight:700;}
+.stat-key{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-top:1px;}
+.sp-strength .rank-name,.sp-strength .stat-val{color:var(--acc);}
+.sp-run .rank-name,.sp-run .stat-val{color:var(--green);}
+.sp-swim .rank-name,.sp-swim .stat-val{color:var(--blue);}
+.sp-yoga .rank-name,.sp-yoga .stat-val{color:var(--purple);}
+
+/* PR SECTION */
+.pr-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.pr-row:last-child{border-bottom:none;}
+.pr-l{color:var(--txt2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pr-v{font-weight:700;white-space:nowrap;flex-shrink:0;margin-left:10px;}
+
+/* FORMS */
+.fg{margin-bottom:12px;}
+label{display:block;font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
+input,select,textarea{width:100%;background:var(--surf);border:1px solid var(--border);border-radius:var(--r);color:var(--txt);font-family:var(--mono);font-size:14px;padding:9px 11px;outline:none;transition:border-color .15s;appearance:none;-webkit-appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);}
+textarea{resize:vertical;min-height:46px;}
+select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%236a6a6a'><polygon points='0,2 10,2 5,8'/></svg>");background-repeat:no-repeat;background-position:right 11px center;padding-right:28px;}
+select option{background:var(--surf2);}
+
+.stabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;}
+.stab{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);color:var(--txt2);font-family:var(--mono);font-size:18px;padding:9px 4px;cursor:pointer;text-align:center;transition:all .15s;}
+.stab.on{border-color:var(--acc);background:var(--surf2);}
+
+/* STRENGTH EXERCISE CARDS */
+.exc{background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-bottom:8px;}
+.exc-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.exc-name{font-size:13px;font-weight:700;color:var(--acc);}
+.exc-cat{font-size:8px;color:var(--txt3);letter-spacing:1px;text-transform:uppercase;}
+.eset{display:grid;grid-template-columns:18px 1fr 1fr 28px;gap:6px;align-items:center;margin-bottom:6px;}
+.eset-n{font-size:10px;color:var(--txt3);text-align:center;}
+.eset input{padding:6px 8px;font-size:13px;text-align:center;}
+.ico{background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--txt3);cursor:pointer;font-size:15px;width:28px;height:32px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.ico:hover{border-color:var(--acc);color:var(--acc);}
+
+/* PICKER */
+.picker{background:var(--surf);border:1px solid var(--acc);border-radius:var(--r);padding:11px;margin-bottom:10px;}
+.pcats{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;}
+.pcat{padding:4px 9px;background:var(--surf2);border:1px solid var(--border);border-radius:3px;font-size:9px;color:var(--txt2);cursor:pointer;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;}
+.pcat.on{border-color:var(--acc);color:var(--acc);}
+.pexs{display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto;margin-bottom:10px;}
+.pex{padding:8px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);font-size:12px;cursor:pointer;transition:all .15s;}
+.pex:hover{border-color:var(--acc);}
+.pcustom{display:grid;grid-template-columns:1fr auto;gap:6px;}
+.pcustom input{font-size:13px;}
+
+/* BUTTONS */
+.btn{display:block;width:100%;padding:13px;background:var(--acc);border:none;border-radius:var(--r);color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;cursor:pointer;transition:opacity .15s;margin-top:4px;}
+.btn:active{opacity:.75;}
+.btn-sec{background:var(--surf2);border:1px solid var(--border);color:var(--txt2);font-size:11px;margin-top:6px;letter-spacing:1.5px;}
+.btn-add{background:none;border:1px dashed var(--border);color:var(--txt2);}
+
+/* HISTORY */
+.hi{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:11px 12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+.hi-info{flex:1;min-width:0;}
+.hi-top{display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.hi-val{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hi-note{font-size:10px;color:var(--txt3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.badge{font-size:8px;padding:2px 6px;border-radius:3px;letter-spacing:1px;border:1px solid;flex-shrink:0;}
+.b-strength{color:var(--acc);border-color:var(--acc);}
+.b-run{color:var(--green);border-color:var(--green);}
+.b-swim{color:var(--blue);border-color:var(--blue);}
+.b-yoga{color:var(--purple);border-color:var(--purple);}
+.hi-date{font-size:10px;color:var(--txt3);}
+.ftabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.ftab{padding:4px 9px;background:var(--surf);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:9px;color:var(--txt3);cursor:pointer;letter-spacing:1px;text-transform:uppercase;transition:all .15s;}
+.ftab.on{border-color:var(--acc);color:var(--acc);}
+
+/* CHARTS */
+.cw{background:var(--surf);border:1px solid var(--border);border-radius:var(--r);padding:13px;margin-bottom:10px;}
+.ct{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--txt2);margin-bottom:8px;}
+.cst{font-size:9px;color:var(--txt3);margin-bottom:4px;}
+.cst.mt{margin-top:12px;}
+.gsel{margin-bottom:8px;font-size:12px;padding:6px 9px;}
+
+/* MISC */
+.empty{text-align:center;color:var(--txt3);padding:28px 0;font-size:11px;letter-spacing:2px;}
+.toast{position:fixed;bottom:66px;left:50%;transform:translateX(-50%);background:var(--surf2);border:1px solid var(--acc);color:var(--txt);padding:7px 16px;border-radius:var(--r);font-size:11px;letter-spacing:1.5px;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:999;}
+.toast.on{opacity:1;}
+.section-title{font-size:9px;color:var(--txt3);letter-spacing:2px;text-transform:uppercase;margin:18px 0 8px;border-bottom:1px solid var(--border);padding-bottom:4px;}
+.backup{display:flex;gap:8px;margin-top:6px;}
+.backup .btn-sec{margin-top:0;flex:1;}
+
+/* RANK-UP OVERLAY */
+.rankup{position:fixed;inset:0;z-index:9999;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);opacity:0;transition:opacity .3s;text-align:center;padding:24px;}
+.rankup.on{display:flex;opacity:1;}
+.ru-glow{position:absolute;width:340px;height:340px;border-radius:50%;filter:blur(80px);opacity:.25;}
+.ru-eyebrow{font-size:11px;letter-spacing:7px;color:var(--txt2);text-transform:uppercase;margin-bottom:16px;animation:ruFade .5s both;z-index:1;}
+.ru-rank{font-size:72px;font-weight:700;line-height:1;animation:ruPop .6s .1s both;z-index:1;}
+.ru-name{font-size:22px;font-weight:700;margin-top:12px;animation:ruFade .5s .3s both;z-index:1;}
+.ru-sport{font-size:10px;letter-spacing:4px;color:var(--txt3);text-transform:uppercase;margin-top:20px;animation:ruFade .5s .45s both;z-index:1;}
+.ru-tap{position:absolute;bottom:42px;font-size:9px;letter-spacing:3px;color:var(--txt3);z-index:1;}
+@keyframes ruPop{0%{transform:scale(.3);opacity:0}55%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+@keyframes ruFade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* RANK DETAIL VIEW */
+.back-btn{background:none;border:1px solid var(--border);border-radius:var(--r);color:var(--txt2);font-family:var(--mono);font-size:10px;padding:5px 10px;cursor:pointer;letter-spacing:1.5px;text-transform:uppercase;transition:all .15s;}
+.back-btn:hover,.back-btn:active{border-color:var(--acc);color:var(--acc);}
+.rk-stat{font-size:11px;color:var(--txt2);margin-bottom:12px;letter-spacing:.5px;}
+.rk-item{display:flex;align-items:flex-start;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);}
+.rk-item:last-child{border-bottom:none;}
+.rk-check{width:14px;flex-shrink:0;font-size:11px;padding-top:1px;text-align:center;}
+.rk-num{font-size:10px;color:var(--txt3);width:20px;text-align:right;flex-shrink:0;padding-top:2px;}
+.rk-body{flex:1;min-width:0;}
+.rk-name{font-size:13px;font-weight:700;color:var(--txt);}
+.rk-sub{font-size:10px;color:var(--txt3);margin-top:2px;}
+.rk-item.done .rk-name{color:var(--txt3);font-weight:400;font-size:12px;}
+.rk-item.done .rk-num{color:var(--txt3);}
+.rk-item.current .rk-name{font-size:14px;}
+.rk-item.locked .rk-name{font-weight:400;font-size:12px;}
+.rk-item.locked .rk-num{color:var(--txt3);}
+.rk-item.next-up .rk-name{color:var(--txt2) !important;}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div class="view on" id="v-dash">
+  <div class="ph">
+    <span class="pt">Arena<span class="acc">OS</span></span>
+    <span class="dim" id="dd"></span>
+  </div>
+  <div id="dc"></div>
+  <div id="dpr"></div>
+  <div class="section-title">Záloha dat</div>
+  <div class="backup">
+    <button class="btn-sec" onclick="A.exportData()">⬇ EXPORT</button>
+    <button class="btn-sec" onclick="document.getElementById('imp').click()">⬆ IMPORT</button>
+  </div>
+  <input type="file" id="imp" accept="application/json" style="display:none" onchange="A.importData(this)">
+</div>
+
+<div class="view" id="v-log">
+  <div class="ph"><span class="pt">LOG <span class="acc">Trénink</span></span></div>
+  <div id="lf"></div>
+</div>
+
+<div class="view" id="v-hist">
+  <div class="ph"><span class="pt"><span class="acc">Historie</span></span></div>
+  <div class="ftabs" id="hft"></div>
+  <div id="hl"></div>
+</div>
+
+<div class="view" id="v-charts">
+  <div class="ph"><span class="pt"><span class="acc">Grafy</span></span></div>
+  <div id="gc"></div>
+</div>
+
+<nav>
+  <button class="nb on" data-v="dash"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>DASH</button>
+  <button class="nb" data-v="log"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>LOG</button>
+  <button class="nb" data-v="hist"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>HIST</button>
+  <button class="nb" data-v="charts"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>GRAFY</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="rankup" id="rankup" onclick="A.closeRankup()">
+  <div class="ru-glow" id="ru-glow"></div>
+  <div class="ru-eyebrow">RANK UP</div>
+  <div class="ru-rank" id="ru-rank"></div>
+  <div class="ru-name" id="ru-name"></div>
+  <div class="ru-sport" id="ru-sport"></div>
+  <div class="ru-tap">TAP PRO POKRAČOVÁNÍ</div>
+</div>
+
+<div class="view" id="v-ranks">
+  <div class="ph">
+    <span class="pt" id="rk-title"></span>
+    <button class="back-btn" onclick="A.go('dash')">← ZPĚT</button>
+  </div>
+  <div id="rk-list"></div>
+</div>
+
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════
+const SPORTS    = ['strength','run','swim','yoga'];
+const SPORT_LBL = {strength:'SÍLA',run:'BĚH',swim:'PLAVÁNÍ',yoga:'JÓGA'};
+const SPORT_ICO = {strength:'🏋',run:'🏃',swim:'🏊',yoga:'🧘'};
+const SPORT_COL = {strength:'#e63c00',run:'#22c55e',swim:'#3b82f6',yoga:'#a855f7'};
+const SPORT_UNIT= {strength:'kg',run:'km',swim:'m',yoga:'min'};
+
+// Exercise library by category (Strive-style)
+const EX_LIB = {
+  'Hrudník':['Bench press','Bench jednoručky','Šikmý bench','Kliky','Peck deck','Rozpažky'],
+  'Záda':   ['Mrtvý tah','Shyby','Přítahy v předklonu','Stahování kladky','Přítah jednoručky','Veslování'],
+  'Nohy':   ['Dřep','Leg press','Předkopávání','Zakopávání','Výpady','Lýtka','Hip thrust'],
+  'Ramena': ['Tlak nad hlavu','Upažování','Předpažování','Arnold press','Face pull'],
+  'Biceps': ['Bicepsový zdvih','Kladívka','Zdvih na kladce','Koncentrovaný zdvih'],
+  'Triceps':['Stahování kladky','Francouzský tlak','Kliky na bradlech','Triceps overhead'],
+  'Břicho': ['Plank','Zkracovačky','Nohy ve visu','Russian twist','Kolečko'],
+  'Kardio': ['Běžecký pás','Rotoped','Veslo','Švihadlo']
+};
+
+// ═══════════════════════════════════════════════════════
+//  RANKS  —  thresh[i] = floor(base × factor^(i-1)), thresh[0]=0
+// ═══════════════════════════════════════════════════════
+function mkThresh(base,factor){const t=[0];for(let i=1;i<50;i++)t.push(Math.floor(base*Math.pow(factor,i-1)));return t;}
+
+const RANKS = {
+  strength:{thresh:mkThresh(20000,1.20),names:['Kuřecí nohy','Spodní polička','Parkovací správce','Pondělní válečník','Pepík z posilovny','Činkový čerstvák','Nafouknutý nováček','Zrcadlový rytíř','Pre-workout kněz','Svaly ze dvou sezón','Selfie silák','Instagramový lifter','Víkendový Hulk','Bílkovinový konzument','Kaseinový mnich','Krevní tlak 160/100','Leg day přeživší','Pás a pýcha','Žilní síť','Střední váha okresu','Suterénní šampión','Ocelový Pepík','Silák šatny č.6','Muž bez krku','Regálová legenda','Silový pragmatik','Strongman talentát','Olympijský aspirant','Dynamický deadlifter','Platinový kulturista','Železný mýtus','Supertěžká kategorie','Tytan tělocvičen','Stroj na bílkoviny','Půl tuny na záda','Krajský šampión','Síla stvoření','Nektar a ocel','Bodybuilding prorok','Velmoc svalů','Supertitán','Železný zákon','Síla bez hranic','Ocelová existence','Arnoldův stín','Bodybuilding bůh','Dorianův odkaz','Jay Cutletův stín','Big Ron Jr.','Ronnie Coleman']},
+  run:{thresh:mkThresh(10,1.20),names:['Šnek','Procházející důchodce','Bus-runner','Joggingový začátečník','Pivní kilometr','Náhodný sprintér','Parkový rekreant','5km hrdina','Podmáčený výlet','10km legenda','Běžec o přestávce','Venkovní sportovec','Závoděník v sobotu','Svižný Miroslav','Aerobní prorok','Půlmaratonský kmet','Tempový génius','Maratonský debutant','VO2max vizionář','Elitní rekreant','Intervalový inkvizitor','Sub-4 aspirant','Kopec-specialista','Ultra-trail talent','Noční runner','Mílový exekutor','Legendární lokální','Krajský šampión','Národní talent','Ultramaratonský mnich','100km přeživší','Pouštní lišák','Horský závodník','24h závodník','Transcontinental runner','Olympijský adept','Eliud v zárodku','Sub-2:10 sen','Africký talent','Světový třicátník','Diamantový maratonář','Vítr v lidské formě','Zákon gravitace','Biomechanický zázrak','Lidský motor','Kroky bez hranic','Chodidlo osudu','Muž který porazil čas','Legenda asfaltu','Kipchoge']},
+  swim:{thresh:mkThresh(500,1.20),names:['Kámen','Brouzdající turista','Plovoucí vlasový gel','Plavání pro přežití','Aqua-nováček','Základní kraulař','50m přeplavatel','Bazénový turista','Hodinový plavec','Krokodýlí pomalost','Vodní rytíř','100m mašina','Bazénový taktik','Splitový ignorant','Aqua-závodník','Podvodní chodec','Závodní čepice-nosič','Otužilý mokroš','Vlnový profesionál','Ranní dráha-owner','Otevřená voda nováček','Triatlonový modul','Butterfly trpitel','Závodník meziměsta','Krajský plavec','Imunní na chlor','Stopky-analytik','Startovní blok-mistr','Národní aspirant','Závodní vodník','Channel-dreamer','Dálkový plavec','Tytan bazénu','Vlnové stvoření','Temnomodrý závodník','Podmořská raketa','Olympijský adept','Světový závodník','1500m elita','Čtyřstylový mistr','Světový rekordman','Podmořský génius','Lidská vlna','Hydrodynamický zákon','Titan vody','Ian Thorpův student','Thorpova vlna','Aquatický supertitan','Medailový bůh','Phelps']},
+  yoga:{thresh:mkThresh(90,1.15),names:['Prkno','Tuhý manažer v pondělí','Záda jak deska','Kancelářský invalida','Předklon 30cm','Dotýkatel kolen','Základní pozdrav slunci','Ranní natáhač','Yogový zvědavec','Pravidelný cvičenec','Čakra-nováček','Dechový experimentátor','Ohebný záchranář','Vinyasa-student','Ásana sběratel','Mentální zklidněnec','Víkendový yogín','Párový cvičenec','Jóga-klub pilíř','Zenový adept','Pranajáma badatel','Pohybový tichošlap','Ohebný profesionál','Meditatívní silák','Ásana mistr','Vnitřní tichošlap','Mudra specialista','Tělo-mysli inženýr','Dechový alchymista','Yogový profesor','Kundalini probuzený','Mokša hledač','Karmický šéf','Tělo jako voda','Transcendentální','Samádhi-kandidát','Věčný praktikant','Bytí v pohybu','Tichá síla','Yogový rši','Dharma ztělesněný','Světelný praktikant','Neosobní centrum','Živá mandala','Prázdnota v pohybu','Osvícený tělovědec','Bytí samo o sobě','Čistá přítomnost','Brahman v těle','Jogín Prahlad']}
+};
+
+function getRank(sport,total){
+  const {thresh,names}=RANKS[sport];
+  let ri=0;
+  for(let i=0;i<thresh.length;i++){if(total>=thresh[i])ri=i;else break;}
+  const cur=thresh[ri], nxt=ri<49?thresh[ri+1]:null;
+  const prog=nxt?Math.min(1,(total-cur)/(nxt-cur)):1;
+  return {rank:ri+1,name:names[ri],nextName:ri<49?names[ri+1]:null,prog,cur,nxt};
+}
+
+// ═══════════════════════════════════════════════════════
+//  DATABASE (IndexedDB)
+// ═══════════════════════════════════════════════════════
+const DB=(()=>{
+  let _db;
+  const open=()=>new Promise((res,rej)=>{
+    const req=indexedDB.open('arenaOS',1);
+    req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('sessions')){const s=d.createObjectStore('sessions',{keyPath:'id',autoIncrement:true});s.createIndex('sport','sport');s.createIndex('date','date');}};
+    req.onsuccess=e=>{_db=e.target.result;res();};
+    req.onerror=e=>rej(e.target.error);
+  });
+  const _tx=(mode,fn)=>new Promise((res,rej)=>{const t=_db.transaction('sessions',mode);const r=fn(t.objectStore('sessions'));r.onsuccess=e=>res(e.target.result);r.onerror=e=>rej(e.target.error);});
+  const add=row=>_tx('readwrite',s=>s.add({...row,ts:row.ts||Date.now()}));
+  const all=()=>new Promise((res,rej)=>{const t=_db.transaction('sessions','readonly');const req=t.objectStore('sessions').getAll();req.onsuccess=e=>res(e.target.result);req.onerror=e=>rej(e.target.error);});
+  const del=id=>_tx('readwrite',s=>s.delete(id));
+  return {open,add,all,del};
+})();
+
+// ═══════════════════════════════════════════════════════
+//  CHART (pure SVG)
+// ═══════════════════════════════════════════════════════
+const Chart=(()=>{
+  const VW=320,PL=44,PR=10,PT=8,PB=22;
+  const fmtN=v=>v>=1e6?(v/1e6).toFixed(1)+'M':v>=1e3?(v/1e3).toFixed(1)+'k':(Math.round(v*10)/10).toString();
+  const grid=(cw,ch)=>[0,ch/2,ch].map(y=>`<line x1="0" y1="${y.toFixed(0)}" x2="${cw}" y2="${y.toFixed(0)}" stroke="#191919"/>`).join('');
+  const yLab=(mn,mx,ch,fmt)=>[[mn,ch],[(mn+mx)/2,ch/2],[mx,0]].map(([v,y])=>`<text x="${PL-4}" y="${(PT+y+3).toFixed(0)}" text-anchor="end" fill="#2a2a2a" font-size="8">${fmt?fmt(v):fmtN(v)}</text>`).join('');
+  const xLab=(pts,H,xFn)=>{const st=Math.max(1,Math.floor(pts.length/4));const o=[];pts.forEach((p,i)=>{if(i%st===0||i===pts.length-1)o.push(`<text x="${(PL+xFn(i)).toFixed(0)}" y="${H-4}" text-anchor="middle" fill="#2a2a2a" font-size="8">${p.l||''}</text>`);});return o.join('');};
+
+  function line(pts,color,opt={}){
+    const H=opt.H||100, fmt=opt.fmt;
+    if(!pts.length)return `<div class="empty" style="height:${H}px">— žádná data —</div>`;
+    const cw=VW-PL-PR,ch=H-PT-PB;
+    const ys=pts.map(p=>p.y);let mn=Math.min(...ys),mx=Math.max(...ys);
+    if(mn===mx){mn=mn*0.95;mx=mx*1.05||1;}
+    const rng=mx-mn||1;
+    const px=i=>pts.length<2?cw/2:(i/(pts.length-1))*cw;
+    const py=v=>ch-((v-mn)/rng)*ch;
+    const poly=pts.map((p,i)=>`${px(i).toFixed(1)},${py(p.y).toFixed(1)}`).join(' ');
+    const area=`${px(0).toFixed(1)},${ch} ${poly} ${px(pts.length-1).toFixed(1)},${ch}`;
+    const gid=`lg${color.replace('#','')}${(opt.id||'')}`;
+    return `<svg viewBox="0 0 ${VW} ${H}" style="width:100%;display:block"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity=".2"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs><g transform="translate(${PL},${PT})">${grid(cw,ch)}<polygon points="${area}" fill="url(#${gid})"/><polyline points="${poly}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="${px(pts.length-1).toFixed(1)}" cy="${py(pts[pts.length-1].y).toFixed(1)}" r="3" fill="${color}"/>${yLab(mn,mx,ch,fmt)}${xLab(pts,H-PT,px)}</g></svg>`;
+  }
+  function bar(pts,color,opt={}){
+    const H=opt.H||88, fmt=opt.fmt;
+    if(!pts.length)return `<div class="empty" style="height:${H}px">— žádná data —</div>`;
+    const cw=VW-PL-PR,ch=H-PT-PB;
+    const mx=Math.max(...pts.map(p=>p.y))||1;
+    const sp=cw/pts.length,bw=Math.max(3,sp-4);
+    const bars=pts.map((p,i)=>{const bh=Math.max(1,(p.y/mx)*ch);const x=i*sp+(sp-bw)/2;return `<rect x="${x.toFixed(1)}" y="${(ch-bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${color}" opacity=".7" rx="2"/>`;}).join('');
+    return `<svg viewBox="0 0 ${VW} ${H}" style="width:100%;display:block"><g transform="translate(${PL},${PT})">${grid(cw,ch)}${bars}${yLab(0,mx,ch,fmt)}${xLab(pts,H-PT,i=>i*sp+sp/2)}</g></svg>`;
+  }
+  return {line,bar};
+})();
+
+// ═══════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════
+const S={sessions:[],view:'dash',sport:'strength',exs:[],pickerOpen:false,pickerCat:'Hrudník',hf:'all',gEx:null,rankSport:null};
+
+// ═══════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════
+function today(){return new Date().toISOString().split('T')[0];}
+function e1rm(w,r){return r>0&&w>0?w*(1+r/30):0;}              // Epley estimated 1RM
+function parseTime(s){if(!s)return null;const p=String(s).split(':').map(Number);if(p.some(isNaN))return null;if(p.length===2)return p[0]*60+p[1];if(p.length===3)return p[0]*3600+p[1]*60+p[2];return null;}
+function fmtPace(sec){const m=Math.floor(sec/60),s=Math.round(sec%60);return `${m}:${String(s).padStart(2,'0')}`;}
+
+function strengthVol(sess){return (sess.data.exercises||[]).reduce((es,ex)=>es+(ex.sets||[]).reduce((ss,st)=>ss+(+st.w||0)*(+st.r||0),0),0);}
+
+function metric(sport,sessions){
+  const f=sessions.filter(x=>x.sport===sport);
+  switch(sport){
+    case 'strength':return f.reduce((s,x)=>s+strengthVol(x),0);
+    case 'run':return f.reduce((s,x)=>s+(+x.data.dk||0),0);
+    case 'swim':return f.reduce((s,x)=>s+(+x.data.dm||0),0);
+    case 'yoga':return f.reduce((s,x)=>s+(+x.data.mn||0),0);
+  }
+  return 0;
+}
+
+function fmtM(sport,v){
+  if(sport==='strength'){if(v>=1e9)return (v/1e9).toFixed(2)+' Gt';if(v>=1e6)return (v/1e6).toFixed(2)+' Mt';if(v>=1e3)return (v/1e3).toFixed(1)+' t';return Math.round(v)+' kg';}
+  if(sport==='run')return v.toFixed(1)+' km';
+  if(sport==='swim')return v>=1000?(v/1000).toFixed(2)+' km':Math.round(v)+' m';
+  if(sport==='yoga'){const h=Math.floor(v/60),m=Math.round(v%60);return h?`${h}h ${m}min`:`${m} min`;}
+}
+
+function sumSess(s){
+  if(s.sport==='strength'){const exs=s.data.exercises||[];const vol=strengthVol(s);const n=exs.map(e=>e.name);return `${n.slice(0,2).join(', ')||'(prázdné)'}${n.length>2?' +'+(n.length-2):''} · ${exs.length} cviků · ${Math.round(vol)} kg`;}
+  if(s.sport==='run')return `${(+s.data.dk||0).toFixed(1)} km${s.data.dur?' · '+s.data.dur:''}`;
+  if(s.sport==='swim')return `${s.data.dm||0} m${s.data.dur?' · '+s.data.dur:''}`;
+  if(s.sport==='yoga')return `${s.data.mn||0} min${s.data.sty?' · '+s.data.sty:''}`;
+}
+
+// merged exercise library: predefined + any from history
+function getLib(){
+  const lib={};for(const c in EX_LIB)lib[c]=[...EX_LIB[c]];
+  S.sessions.filter(s=>s.sport==='strength').forEach(s=>(s.data.exercises||[]).forEach(ex=>{const c=ex.cat||'Vlastní';if(!lib[c])lib[c]=[];if(!lib[c].includes(ex.name))lib[c].push(ex.name);}));
+  return lib;
+}
+
+// weekly streak: consecutive weeks with >=1 session, ending at current/last week
+function getStreak(){
+  if(!S.sessions.length)return 0;
+  const wk=t=>Math.floor((t-Date.UTC(1970,0,5))/(7*864e5));   // Mon-aligned week index
+  const weeks=new Set(S.sessions.map(s=>wk(new Date(s.date+'T12:00:00').getTime())));
+  const now=wk(Date.now());
+  let start = weeks.has(now)?now : (weeks.has(now-1)?now-1:null);
+  if(start===null)return 0;
+  let n=0,w=start;while(weeks.has(w)){n++;w--;}
+  return n;
+}
+
+// PR records across history
+function strengthPRs(sessions){
+  const m={};
+  sessions.filter(s=>s.sport==='strength').forEach(s=>(s.data.exercises||[]).forEach(ex=>{
+    ex.sets.forEach(st=>{const w=+st.w||0,r=+st.r||0;if(!m[ex.name])m[ex.name]={name:ex.name,w:0,r:0,score:0,maxr:0};const o=m[ex.name];if(w>0){const sc=e1rm(w,r);if(sc>o.score){o.score=sc;o.w=w;o.r=r;}}else if(r>o.maxr)o.maxr=r;});
+  }));
+  return Object.values(m);
+}
+function endurancePRs(sessions){
+  const runs=sessions.filter(s=>s.sport==='run');
+  const swims=sessions.filter(s=>s.sport==='swim');
+  const yogas=sessions.filter(s=>s.sport==='yoga');
+  const runLong=Math.max(0,...runs.map(s=>+s.data.dk||0));
+  let runPace=null;runs.forEach(s=>{const t=parseTime(s.data.dur),d=+s.data.dk||0;if(t&&d>0){const p=t/d;if(runPace===null||p<runPace)runPace=p;}});
+  const swimLong=Math.max(0,...swims.map(s=>+s.data.dm||0));
+  let swimPace=null;swims.forEach(s=>{const t=parseTime(s.data.dur),d=+s.data.dm||0;if(t&&d>0){const p=t/(d/100);if(swimPace===null||p<swimPace)swimPace=p;}});
+  const yogaLong=Math.max(0,...yogas.map(s=>+s.data.mn||0));
+  return {runLong,runPace,swimLong,swimPace,yogaLong};
+}
+
+// detect if a new session beats existing records
+function checkPR(row,prev){
+  if(row.sport==='strength'){
+    const old=strengthPRs(prev);
+    return (row.data.exercises||[]).some(ex=>ex.sets.some(st=>{
+      const w=+st.w||0,r=+st.r||0;const o=old.find(x=>x.name===ex.name);
+      if(w>0)return !o||e1rm(w,r)>o.score;
+      return !o||r>o.maxr;
+    }));
+  }
+  const e=endurancePRs(prev);
+  if(row.sport==='run'){const d=+row.data.dk||0,t=parseTime(row.data.dur);if(d>e.runLong)return true;if(t&&d>0&&(e.runPace===null||t/d<e.runPace))return true;}
+  if(row.sport==='swim'){const d=+row.data.dm||0,t=parseTime(row.data.dur);if(d>e.swimLong)return true;if(t&&d>0&&(e.swimPace===null||t/(d/100)<e.swimPace))return true;}
+  if(row.sport==='yoga'){if((+row.data.mn||0)>e.yogaLong)return true;}
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER: DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDash(){
+  const streak=getStreak();
+  const isPWA=(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||window.navigator.standalone===true;
+  const pwaBanner=isPWA?'':`<div style="background:var(--surf2);border:1px solid #3a3a3a;border-radius:var(--r);padding:11px 12px;margin-bottom:12px;font-size:11px;color:var(--txt2);line-height:1.6">📱 <strong style="color:var(--txt)">Data budou trvale uložena jen jako appka.</strong><br>Safari → <span style="color:var(--acc)">Sdílet ↑ → Přidat na plochu</span></div>`;
+  document.getElementById('dd').innerHTML=
+    `${new Date().toLocaleDateString('cs-CZ',{weekday:'long',day:'numeric',month:'long'}).toUpperCase()}`+
+    (streak>0?`<br><span class="streak">🔥 ${streak} ${streak===1?'týden':streak<5?'týdny':'týdnů'} v řadě</span>`:'');
+
+  document.getElementById('dc').innerHTML=pwaBanner+SPORTS.map(sp=>{
+    const m=metric(sp,S.sessions),ri=getRank(sp,m),col=SPORT_COL[sp];
+    const rem=ri.nxt?'zbývá '+fmtM(sp,Math.max(0,ri.nxt-m))+' → '+ri.nextName:'⚡ MAX RANK';
+    const pct=Math.round(ri.prog*100),cnt=S.sessions.filter(x=>x.sport===sp).length;
+    return `<div class="card sp-${sp}" onclick="A.openRanks('${sp}')" style="cursor:pointer"><div class="card-head"><div><div class="sport-label">${SPORT_ICO[sp]} ${SPORT_LBL[sp]}</div><div class="rank-name">${ri.name}</div></div><div class="rank-badge">RANK ${ri.rank}/50</div></div><div class="xp-wrap"><div class="xp-labels"><span>${rem}</span><span style="color:${col};flex-shrink:0">${pct}%</span></div><div class="xp-track"><div class="xp-fill" style="width:${pct}%;background:${col}"></div></div></div><div class="stat-row"><div><div class="stat-val">${fmtM(sp,m)}</div><div class="stat-key">celkem</div></div><div><div class="stat-val">${cnt}</div><div class="stat-key">tréninků</div></div></div></div>`;
+  }).join('');
+
+  // PR section
+  const sPR=strengthPRs(S.sessions).filter(x=>x.score>0||x.maxr>0).sort((a,b)=>(b.score||b.maxr*5)-(a.score||a.maxr*5)).slice(0,3);
+  const e=endurancePRs(S.sessions);
+  const rows=[];
+  sPR.forEach(p=>rows.push(`<div class="pr-row"><span class="pr-l">🏋 ${p.name}</span><span class="pr-v" style="color:var(--acc)">${p.score>0?`${p.w} kg × ${p.r}`:`${p.maxr}× tělo`}</span></div>`));
+  if(e.runLong>0)rows.push(`<div class="pr-row"><span class="pr-l">🏃 Nejdelší běh</span><span class="pr-v" style="color:var(--green)">${e.runLong.toFixed(1)} km</span></div>`);
+  if(e.runPace)rows.push(`<div class="pr-row"><span class="pr-l">🏃 Nejlepší tempo</span><span class="pr-v" style="color:var(--green)">${fmtPace(e.runPace)} /km</span></div>`);
+  if(e.swimLong>0)rows.push(`<div class="pr-row"><span class="pr-l">🏊 Nejdelší plavání</span><span class="pr-v" style="color:var(--blue)">${e.swimLong} m</span></div>`);
+  if(e.swimPace)rows.push(`<div class="pr-row"><span class="pr-l">🏊 Nejlepší tempo</span><span class="pr-v" style="color:var(--blue)">${fmtPace(e.swimPace)} /100m</span></div>`);
+  if(e.yogaLong>0)rows.push(`<div class="pr-row"><span class="pr-l">🧘 Nejdelší praxe</span><span class="pr-v" style="color:var(--purple)">${e.yogaLong} min</span></div>`);
+  document.getElementById('dpr').innerHTML=rows.length?`<div class="section-title">🏆 Osobní rekordy</div><div class="card">${rows.join('')}</div>`:'';
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER: LOG
+// ═══════════════════════════════════════════════════════
+function renderLog(){
+  const sp=S.sport;
+  const curDate=document.getElementById('f-date')?.value||today();
+  const curNotes=document.getElementById('f-notes')?.value||'';
+  const tabs=SPORTS.map(s=>`<button class="stab${s===sp?' on':''}" onclick="A.setSport('${s}')">${SPORT_ICO[s]}</button>`).join('');
+
+  let fields='';
+  if(sp==='strength'){
+    const exCards=S.exs.map((ex,ei)=>{
+      const sets=ex.sets.map((st,sj)=>`<div class="eset"><span class="eset-n">${sj+1}</span><input type="number" inputmode="decimal" placeholder="kg" data-ei="${ei}" data-sj="${sj}" data-k="w" value="${st.w}" oninput="A.upExSet(this)"><input type="number" inputmode="numeric" placeholder="rep" data-ei="${ei}" data-sj="${sj}" data-k="r" value="${st.r}" oninput="A.upExSet(this)"><button class="ico" onclick="A.rmSet(${ei},${sj})">×</button></div>`).join('');
+      return `<div class="exc"><div class="exc-head"><div><div class="exc-name">${ex.name}</div><div class="exc-cat">${ex.cat}</div></div><button class="ico" onclick="A.rmEx(${ei})">×</button></div>${sets}<button class="btn-sec btn-add" onclick="A.addSet(${ei})">+ série</button></div>`;
+    }).join('');
+    let picker='';
+    if(S.pickerOpen){
+      const lib=getLib();
+      const cats=Object.keys(lib).map(c=>`<button class="pcat${c===S.pickerCat?' on':''}" onclick="A.pickCat('${c}')">${c}</button>`).join('');
+      const exs=(lib[S.pickerCat]||[]).map(n=>`<div class="pex" onclick="A.addEx('${n.replace(/'/g,"\\'")}','${S.pickerCat}')">${n}</div>`).join('');
+      picker=`<div class="picker"><div class="pcats">${cats}</div><div class="pexs">${exs}</div><div class="pcustom"><input type="text" id="custom-ex" placeholder="Vlastní cvik…"><button class="ico" onclick="A.addCustom()">+</button></div></div>`;
+    }
+    fields=`${exCards}${picker}${S.pickerOpen?'':'<button class="btn-sec btn-add" onclick="A.openPicker()">+ Přidat cvik</button>'}`;
+  } else if(sp==='run'){
+    fields=`<div class="fg"><label>Vzdálenost (km)</label><input id="f-dk" type="number" inputmode="decimal" placeholder="5.5" step="0.01" min="0"></div><div class="fg"><label>Čas — mm:ss (volitelné, pro tempo)</label><input id="f-dur" type="text" inputmode="numeric" placeholder="28:30"></div><div class="fg"><label>Prům. TF (volitelné)</label><input id="f-hr" type="number" inputmode="numeric" placeholder="bpm"></div>`;
+  } else if(sp==='swim'){
+    fields=`<div class="fg"><label>Vzdálenost (m)</label><input id="f-dm" type="number" inputmode="numeric" placeholder="2000" min="0"></div><div class="fg"><label>Čas — mm:ss (volitelné, pro tempo)</label><input id="f-dur" type="text" inputmode="numeric" placeholder="45:00"></div><div class="fg"><label>Bazén</label><select id="f-pool"><option value="25">25m (standardní)</option><option value="50">50m (olympijský)</option><option value="0">Otevřená voda</option></select></div>`;
+  } else if(sp==='yoga'){
+    fields=`<div class="fg"><label>Délka praxe (min)</label><input id="f-mn" type="number" inputmode="numeric" placeholder="60" min="1"></div><div class="fg"><label>Styl (volitelné)</label><input id="f-sty" type="text" placeholder="Hatha, Vinyasa, Yin…"></div>`;
+  }
+
+  document.getElementById('lf').innerHTML=`<div class="stabs">${tabs}</div><div class="fg"><label>Datum</label><input id="f-date" type="date" value="${curDate}"></div>${fields}<div class="fg" style="margin-top:14px"><label>Poznámky</label><textarea id="f-notes" placeholder="Volitelné…">${curNotes}</textarea></div><button class="btn" onclick="A.save()">⚡ ULOŽIT TRÉNINK</button>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER: HISTORY
+// ═══════════════════════════════════════════════════════
+function renderHist(){
+  const labels={all:'VŠE',strength:SPORT_LBL.strength,run:SPORT_LBL.run,swim:SPORT_LBL.swim,yoga:SPORT_LBL.yoga};
+  document.getElementById('hft').innerHTML=Object.entries(labels).map(([k,v])=>`<button class="ftab${S.hf===k?' on':''}" onclick="A.setHF('${k}')">${v}</button>`).join('');
+  const list=[...S.sessions].filter(s=>S.hf==='all'||s.sport===S.hf).sort((a,b)=>b.ts-a.ts);
+  document.getElementById('hl').innerHTML=list.length?list.map(s=>{
+    const d=new Date(s.date).toLocaleDateString('cs-CZ',{day:'numeric',month:'short',year:'numeric'});
+    return `<div class="hi"><div class="hi-info"><div class="hi-top"><span class="badge b-${s.sport}">${SPORT_LBL[s.sport]}</span><span class="hi-date">${d}</span></div><div class="hi-val">${sumSess(s)}</div>${s.notes?`<div class="hi-note">${s.notes}</div>`:''}</div><button class="ico" onclick="A.del(${s.id})">×</button></div>`;
+  }).join(''):'<div class="empty">Žádné záznamy. Jdi cvičit.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER: CHARTS
+// ═══════════════════════════════════════════════════════
+function dlabel(dt){const d=new Date(dt);return `${d.getDate()}/${d.getMonth()+1}`;}
+
+function renderCharts(){
+  let out='';
+  SPORTS.forEach(sp=>{
+    const sess=[...S.sessions].filter(s=>s.sport===sp).sort((a,b)=>new Date(a.date)-new Date(b.date));
+    if(!sess.length)return;
+    const col=SPORT_COL[sp],ri=getRank(sp,metric(sp,S.sessions));
+    let cum=0;
+    const cumPts=sess.map(s=>{cum+=sp==='strength'?strengthVol(s):sp==='run'?+s.data.dk||0:sp==='swim'?+s.data.dm||0:+s.data.mn||0;return {y:cum,l:dlabel(s.date)};});
+
+    let body=`<div class="cst">kumulativní ${SPORT_UNIT[sp]}</div>${Chart.line(cumPts,col,{id:sp+'c'})}`;
+
+    if(sp==='strength'){
+      // exercise 1RM progression
+      const lib={};sess.forEach(s=>(s.data.exercises||[]).forEach(ex=>{lib[ex.name]=(lib[ex.name]||0)+1;}));
+      const names=Object.keys(lib).filter(n=>{return sess.some(s=>(s.data.exercises||[]).some(ex=>ex.name===n&&ex.sets.some(st=>+st.w>0)));}).sort((a,b)=>lib[b]-lib[a]);
+      if(names.length){
+        if(!S.gEx||!names.includes(S.gEx))S.gEx=names[0];
+        const opts=names.map(n=>`<option value="${n}"${n===S.gEx?' selected':''}>${n}</option>`).join('');
+        const pts=[];
+        sess.forEach(s=>{let best=0;(s.data.exercises||[]).forEach(ex=>{if(ex.name===S.gEx)ex.sets.forEach(st=>{const v=e1rm(+st.w||0,+st.r||0);if(v>best)best=v;});});if(best>0)pts.push({y:Math.round(best),l:dlabel(s.date)});});
+        body+=`<div class="cst mt">odhad 1RM — progrese cviku</div><select class="gsel" onchange="A.setGEx(this.value)">${opts}</select>${Chart.line(pts,col,{id:sp+'1rm',fmt:v=>Math.round(v)+'kg'})}`;
+      }
+      const perPts=sess.slice(-20).map(s=>({y:strengthVol(s),l:dlabel(s.date)}));
+      body+=`<div class="cst mt">objem / trénink (posl. 20)</div>${Chart.bar(perPts,col,{id:sp+'b'})}`;
+    }
+    else if(sp==='run'){
+      const pace=sess.filter(s=>parseTime(s.data.dur)&&+s.data.dk>0).map(s=>({y:Math.round(parseTime(s.data.dur)/(+s.data.dk)),l:dlabel(s.date)}));
+      if(pace.length)body+=`<div class="cst mt">tempo (s/km — níž je líp)</div>${Chart.line(pace,col,{id:'rp',fmt:v=>fmtPace(v)})}`;
+      const dist=sess.slice(-20).map(s=>({y:+s.data.dk||0,l:dlabel(s.date)}));
+      body+=`<div class="cst mt">vzdálenost / běh (posl. 20)</div>${Chart.bar(dist,col,{id:'rb'})}`;
+    }
+    else if(sp==='swim'){
+      const pace=sess.filter(s=>parseTime(s.data.dur)&&+s.data.dm>0).map(s=>({y:Math.round(parseTime(s.data.dur)/((+s.data.dm)/100)),l:dlabel(s.date)}));
+      if(pace.length)body+=`<div class="cst mt">tempo (s/100m — níž je líp)</div>${Chart.line(pace,col,{id:'sp',fmt:v=>fmtPace(v)})}`;
+      const dist=sess.slice(-20).map(s=>({y:+s.data.dm||0,l:dlabel(s.date)}));
+      body+=`<div class="cst mt">vzdálenost / plavání (posl. 20)</div>${Chart.bar(dist,col,{id:'sb'})}`;
+    }
+    else if(sp==='yoga'){
+      const dur=sess.slice(-20).map(s=>({y:+s.data.mn||0,l:dlabel(s.date)}));
+      body+=`<div class="cst mt">délka praxe / trénink (posl. 20)</div>${Chart.bar(dur,col,{id:'yb'})}`;
+    }
+
+    out+=`<div class="cw"><div class="ct">${SPORT_ICO[sp]} ${SPORT_LBL[sp]} · <span style="color:${col}">RANK ${ri.rank}</span> · ${ri.name}</div>${body}</div>`;
+  });
+  document.getElementById('gc').innerHTML=out||'<div class="empty">Zatím žádná data. Začni logovat.</div>';
+}
+
+function render(){const v=S.view;if(v==='dash')renderDash();if(v==='log')renderLog();if(v==='hist')renderHist();if(v==='charts')renderCharts();if(v==='ranks')renderRanks();}
+
+// ═══════════════════════════════════════════════════════
+//  RENDER: RANK DETAIL
+// ═══════════════════════════════════════════════════════
+function renderRanks(){
+  const sp=S.rankSport; if(!sp)return;
+  const col=SPORT_COL[sp], {thresh,names}=RANKS[sp];
+  const total=metric(sp,S.sessions), ri=getRank(sp,total);
+  const cur=ri.rank; // 1-indexed current rank
+
+  document.getElementById('rk-title').innerHTML=`${SPORT_ICO[sp]} <span class="acc">${SPORT_LBL[sp]}</span>`;
+
+  const items=names.map((name,idx)=>{
+    const rankNum=idx+1;
+    const thr=thresh[idx]; // minimum metric to reach this rank
+
+    if(rankNum<cur){
+      // COMPLETED
+      return `<div class="rk-item done">
+        <div class="rk-check"><span style="color:${col};opacity:.6">✓</span></div>
+        <div class="rk-num">${rankNum}</div>
+        <div class="rk-body"><div class="rk-name">${name}</div></div>
+      </div>`;
+    }
+
+    if(rankNum===cur){
+      // CURRENT — XP bar + remaining to next
+      const pct=Math.round(ri.prog*100);
+      const rem=ri.nxt?('zbývá '+fmtM(sp,Math.max(0,ri.nxt-total))):'MAX RANK ⚡';
+      return `<div class="rk-item current" id="rk-current">
+        <div class="rk-check"><span style="color:${col};font-size:13px">▶</span></div>
+        <div class="rk-num" style="color:${col}">${rankNum}</div>
+        <div class="rk-body">
+          <div class="rk-name" style="color:${col}">${name}</div>
+          <div class="rk-sub" style="color:${col};margin-bottom:5px">${pct}% dokončeno · ${rem}</div>
+          <div class="xp-track"><div class="xp-fill" style="width:${pct}%;background:${col}"></div></div>
+        </div>
+      </div>`;
+    }
+
+    // LOCKED — show how much metric is still needed from now
+    const needed=fmtM(sp,thr-total);
+    const isNext=rankNum===cur+1;
+    const cls='rk-item locked'+(isNext?' next-up':'');
+    return `<div class="${cls}">
+      <div class="rk-check"><span style="color:var(--txt3)">○</span></div>
+      <div class="rk-num">${rankNum}</div>
+      <div class="rk-body">
+        <div class="rk-name">${name}</div>
+        <div class="rk-sub">zbývá ${needed}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Total metric summary
+  const totalFmt=fmtM(sp,total);
+  const sessCount=S.sessions.filter(x=>x.sport===sp).length;
+  document.getElementById('rk-list').innerHTML=
+    `<div class="rk-stat">Celkem: <strong style="color:${col}">${totalFmt}</strong> · ${sessCount} tréninků · Rank <strong style="color:${col}">${cur}/50</strong></div>
+     <div class="card">${items}</div>`;
+
+  // Scroll to current rank
+  setTimeout(()=>{try{document.getElementById('rk-current')?.scrollIntoView({block:'center',behavior:'smooth'});}catch(_){}},80);
+}
+
+// ═══════════════════════════════════════════════════════
+//  APP CONTROLLER
+// ═══════════════════════════════════════════════════════
+const A={
+  _tt:null,_ruCb:null,
+
+  async init(){
+    // Register Service Worker (offline + persistent cache)
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js').catch(()=>{});
+    }
+    // Request persistent storage — prevents iOS from evicting IndexedDB data
+    if(navigator.storage && navigator.storage.persist){
+      navigator.storage.persist().catch(()=>{});
+    }
+    await DB.open();
+    S.sessions=await DB.all();
+    render();
+    document.querySelectorAll('.nb').forEach(btn=>btn.addEventListener('click',()=>{this.go(btn.dataset.v);}));
+  },
+
+  go(v){
+    S.view=v;
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    document.getElementById('v-'+v).classList.add('on');
+    document.querySelectorAll('.nb').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+    document.getElementById('v-'+v).scrollTop=0;
+    render();
+  },
+
+  openRanks(sp){
+    S.rankSport=sp;
+    S.view='ranks';
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('on'));
+    document.getElementById('v-ranks').classList.add('on');
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+    renderRanks();
+  },
+
+  // strength logging
+  setSport(sp){S.sport=sp;S.exs=[];S.pickerOpen=false;renderLog();},
+  openPicker(){S.pickerOpen=true;renderLog();},
+  pickCat(c){S.pickerCat=c;renderLog();},
+  addEx(name,cat){S.exs.push({name,cat,sets:[{w:'',r:''}]});S.pickerOpen=false;renderLog();},
+  addCustom(){const el=document.getElementById('custom-ex');const v=(el?.value||'').trim();if(!v){this.toast('Napiš název cviku');return;}S.exs.push({name:v,cat:S.pickerCat,sets:[{w:'',r:''}]});S.pickerOpen=false;renderLog();},
+  rmEx(i){S.exs.splice(i,1);renderLog();},
+  addSet(i){const last=S.exs[i].sets[S.exs[i].sets.length-1];S.exs[i].sets.push({w:last?last.w:'',r:last?last.r:''});renderLog();},
+  rmSet(i,j){if(S.exs[i].sets.length>1)S.exs[i].sets.splice(j,1);else this.rmEx(i);renderLog();},
+  upExSet(el){S.exs[+el.dataset.ei].sets[+el.dataset.sj][el.dataset.k]=el.value;},
+
+  setHF(f){S.hf=f;renderHist();},
+  setGEx(v){S.gEx=v;renderCharts();},
+
+  async save(){
+    const sp=S.sport;
+    const date=document.getElementById('f-date')?.value;
+    const notes=document.getElementById('f-notes')?.value||'';
+    if(!date){this.toast('Zadej datum');return;}
+    let data={};
+    if(sp==='strength'){
+      const exs=S.exs.map(ex=>({name:ex.name,cat:ex.cat,sets:ex.sets.filter(st=>(+st.w||0)>0||(+st.r||0)>0).map(st=>({w:+st.w||0,r:+st.r||0}))})).filter(ex=>ex.sets.length);
+      if(!exs.length){this.toast('Přidej cvik a alespoň 1 sérii');return;}
+      data={exercises:exs};
+    } else if(sp==='run'){
+      const dk=+document.getElementById('f-dk')?.value;if(!dk){this.toast('Zadej vzdálenost');return;}
+      data={dk,dur:document.getElementById('f-dur')?.value||'',hr:document.getElementById('f-hr')?.value||''};
+    } else if(sp==='swim'){
+      const dm=+document.getElementById('f-dm')?.value;if(!dm){this.toast('Zadej vzdálenost');return;}
+      data={dm,dur:document.getElementById('f-dur')?.value||'',pool:document.getElementById('f-pool')?.value||'25'};
+    } else if(sp==='yoga'){
+      const mn=+document.getElementById('f-mn')?.value;if(!mn){this.toast('Zadej délku praxe');return;}
+      data={mn,sty:document.getElementById('f-sty')?.value||''};
+    }
+    const row={sport:sp,date,data,notes};
+    const prev=S.sessions;
+    const isPR=checkPR(row,prev);
+    const beforeRank=getRank(sp,metric(sp,prev)).rank;
+    const id=await DB.add(row);
+    S.sessions=[...prev,{...row,id,ts:Date.now()}];
+    const after=getRank(sp,metric(sp,S.sessions));
+    S.exs=[];S.pickerOpen=false;
+    if(navigator.vibrate)navigator.vibrate(50);
+
+    if(after.rank>beforeRank){
+      this.showRankUp(sp,after,()=>this.go('dash'));
+    } else {
+      this.toast(isPR?'🏆 Nový osobní rekord!':'✓ Trénink uložen');
+      setTimeout(()=>this.go('dash'),750);
+    }
+  },
+
+  showRankUp(sp,info,cb){
+    this._ruCb=cb;
+    const col=SPORT_COL[sp];
+    document.getElementById('ru-glow').style.background=col;
+    document.getElementById('ru-rank').textContent=info.rank;
+    document.getElementById('ru-rank').style.color=col;
+    document.getElementById('ru-name').textContent=info.name;
+    document.getElementById('ru-sport').textContent=SPORT_LBL[sp]+' · RANK '+info.rank+'/50';
+    document.getElementById('rankup').classList.add('on');
+    if(navigator.vibrate)navigator.vibrate([60,40,120]);
+  },
+  closeRankup(){document.getElementById('rankup').classList.remove('on');const cb=this._ruCb;this._ruCb=null;if(cb)cb();},
+
+  async del(id){if(!confirm('Smazat tento záznam?'))return;await DB.del(id);S.sessions=S.sessions.filter(s=>s.id!==id);renderHist();},
+
+  async exportData(){
+    const all=await DB.all();
+    const blob=new Blob([JSON.stringify({app:'ArenaOS',v:1,exported:Date.now(),sessions:all},null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`arenaos-backup-${today()}.json`;a.click();
+    URL.revokeObjectURL(url);this.toast('✓ Záloha stažena');
+  },
+  importData(input){
+    const file=input.files[0];if(!file)return;
+    const rd=new FileReader();
+    rd.onload=async e=>{
+      try{
+        const obj=JSON.parse(e.target.result);
+        const arr=obj.sessions||obj;
+        if(!Array.isArray(arr))throw 0;
+        if(!confirm(`Importovat ${arr.length} tréninků? Přidá se k existujícím.`)){input.value='';return;}
+        for(const s of arr){const {id,...rest}=s;await DB.add(rest);}
+        S.sessions=await DB.all();render();this.toast(`✓ Import: ${arr.length} tréninků`);
+      }catch(_){this.toast('Chybný soubor zálohy');}
+      input.value='';
+    };
+    rd.readAsText(file);
+  },
+
+  toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('on');clearTimeout(this._tt);this._tt=setTimeout(()=>t.classList.remove('on'),2200);}
+};
+
+A.init();
+</script>
+</body>
+</html>
